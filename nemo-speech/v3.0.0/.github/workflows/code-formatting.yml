@@ -1,0 +1,50 @@
+name: Isort and Black Formatting Check
+# Check that changed files are formatted with black and isort.
+# Fails if any file needs reformatting — run `pre-commit run --all-files` locally to fix.
+
+on:
+  pull_request:
+    paths:
+      - "**.py"
+    types: [opened, synchronize, reopened]
+
+defaults:
+  run:
+    shell: bash -x -e -u -o pipefail {0}
+
+jobs:
+  check_isort_and_black:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v6
+
+      - name: Get changed files
+        id: changed-files
+        uses: step-security/changed-files@v45.0.1
+        with:
+          files: |
+            **.py
+
+      - name: Setup Python env
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.10"
+
+      - name: black
+        uses: psf/black@stable
+        if: ${{ steps.changed-files.outputs.any_changed == 'true' }}
+        with:
+          options: "--check --verbose"
+          # check only changed files (pass explicitly the files)
+          src: "${{ steps.changed-files.outputs.all_changed_files }}"
+          version: "~= 24.3"
+
+      - name: isort
+        uses: isort/isort-action@v1
+        if: ${{ steps.changed-files.outputs.any_changed == 'true' }}
+        with:
+          isort-version: "5.13.2"
+          configuration: "--check-only --diff"
